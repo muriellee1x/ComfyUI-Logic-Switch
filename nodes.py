@@ -1,7 +1,3 @@
-"""
-随机字符串选择节点
-"""
-
 import random
 
 
@@ -17,6 +13,7 @@ class RandomStringSelector:
         return {
             "required": {},
             "optional": {
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "string1": ("STRING", {"default": "", "multiline": False}),
                 "enable1": ("BOOLEAN", {"default": True}),
                 "string2": ("STRING", {"default": "", "multiline": False}),
@@ -39,13 +36,18 @@ class RandomStringSelector:
     
     @classmethod
     def IS_CHANGED(cls, **kwargs):
-        # 返回一个随机值，强制每次都重新执行
-        return random.random()
+        # 返回 NaN 强制每次都重新执行，即使前序节点没有变化
+        return float("nan")
     
     def select_random(self, **kwargs):
         """
         从启用的字符串中随机选择一个
         """
+        # 获取seed参数（如果提供）
+        seed = kwargs.get("seed", None)
+        if seed is not None:
+            random.seed(seed)
+        
         # 收集所有启用的非空字符串
         enabled_strings = []
         
