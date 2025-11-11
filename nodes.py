@@ -4,28 +4,25 @@ import random
 class RandomStringSelector:
     """
     随机字符串选择器
-    可以输入最多6个字符串，每个都有一个开关控制是否参与随机选择
+    可以动态控制输入数量，每个字符串都有一个开关控制是否参与随机选择
     """
     
     @classmethod
     def INPUT_TYPES(cls):
-        # 预定义6组输入
         return {
-            "required": {},
-            "optional": {
+            "required": {
+                "input_nums": ("INT", {
+                    "default": 3, 
+                    "min": 1, 
+                    "max": 20,
+                    "step": 1,
+                    "display": "number"
+                }),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-                "string1": ("STRING", {"default": "", "multiline": False}),
-                "enable1": ("BOOLEAN", {"default": True}),
-                "string2": ("STRING", {"default": "", "multiline": False}),
-                "enable2": ("BOOLEAN", {"default": True}),
-                "string3": ("STRING", {"default": "", "multiline": False}),
-                "enable3": ("BOOLEAN", {"default": True}),
-                "string4": ("STRING", {"default": "", "multiline": False}),
-                "enable4": ("BOOLEAN", {"default": True}),
-                "string5": ("STRING", {"default": "", "multiline": False}),
-                "enable5": ("BOOLEAN", {"default": True}),
-                "string6": ("STRING", {"default": "", "multiline": False}),
-                "enable6": ("BOOLEAN", {"default": True}),
+            },
+            "optional": {
+                "comma_separated_string": ("STRING",),
+                "enable_comma_separated": ("BOOLEAN", {"default": False}),
             }
         }
     
@@ -39,30 +36,47 @@ class RandomStringSelector:
         # 返回 NaN 强制每次都重新执行，即使前序节点没有变化
         return float("nan")
     
-    def select_random(self, **kwargs):
+    def select_random(self, input_nums, seed, **kwargs):
         """
         从启用的字符串中随机选择一个
+        支持两种输入方式：
+        1. 逗号分隔的字符串（comma_separated_string）- 启用后会忽略其他输入
+        2. 动态string输入（string1-N）
         """
-        # 获取seed参数（如果提供）
-        seed = kwargs.get("seed", None)
-        if seed is not None:
-            random.seed(seed)
+        random.seed(seed)
         
         # 收集所有启用的非空字符串
         enabled_strings = []
         
-        # 检查所有6个输入
-        for i in range(1, 7):
-            string_key = f"string{i}"
-            enable_key = f"enable{i}"
+        # 获取逗号分隔模式开关
+        enable_comma_separated = kwargs.get("enable_comma_separated", False)
+        comma_separated = kwargs.get("comma_separated_string", "")
+        
+        # 方式1：处理逗号分隔的字符串（如果启用）
+        if enable_comma_separated and comma_separated and comma_separated.strip():
+            # 按逗号分隔并清理空白
+            parts = [part.strip() for part in comma_separated.split(",")]
+            # 过滤掉空字符串
+            parts = [part for part in parts if part]
+            enabled_strings.extend(parts)
+            print(f"[RandomStringSelector] 逗号分隔模式已启用，从字符串添加 {len(parts)} 个候选: {parts}")
+            print(f"[RandomStringSelector] 忽略其他 string 输入")
+        else:
+            # 方式2：处理动态输入的string1-N（逗号分隔模式未启用时）
+            if enable_comma_separated:
+                print("[RandomStringSelector] 逗号分隔模式已启用，但输入为空，将使用 string 输入")
             
-            string_value = kwargs.get(string_key, "")
-            enable_value = kwargs.get(enable_key, True)  # 默认启用
-            
-            # 只添加启用的且非空的字符串
-            if enable_value and string_value and string_value.strip():
-                enabled_strings.append(string_value)
-                print(f"[RandomStringSelector] 添加候选: string{i} = '{string_value}'")
+            for i in range(1, input_nums + 1):
+                string_key = f"string{i}"
+                enable_key = f"enable{i}"
+                
+                string_value = kwargs.get(string_key, "")
+                enable_value = kwargs.get(enable_key, True)
+                
+                # 只添加启用的且非空的字符串
+                if enable_value and string_value and string_value.strip():
+                    enabled_strings.append(string_value)
+                    print(f"[RandomStringSelector] 添加候选: string{i} = '{string_value}'")
         
         print(f"[RandomStringSelector] 总共有 {len(enabled_strings)} 个候选字符串: {enabled_strings}")
         
@@ -85,6 +99,6 @@ NODE_CLASS_MAPPINGS = {
 
 # 显示名称映射
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "RandomStringSelector": "random string selector",
+    "RandomStringSelector": "Random String Selector",
 }
 
